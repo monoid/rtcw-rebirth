@@ -145,7 +145,7 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 	static qboolean opening_qconsole = qfalse;
 
 	va_start( argptr,fmt );
-	vsprintf( msg,fmt,argptr );
+	vsnprintf( msg,MAXPRINTMSG,fmt,argptr );
 	va_end( argptr );
 
 	if ( rd_buffer ) {
