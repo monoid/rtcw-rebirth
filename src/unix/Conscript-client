@@ -151,7 +151,7 @@ $env = new cons(
   . $BUILD_DIR . '/unix/jpeglib.a '
   . $BUILD_DIR . '/unix/asmlib.a '
   . $BUILD_DIR . '/unix/inlinelib.a '
-  . '-L/usr/X11R6/lib -lX11 -lXext -lXxf86dga -lXxf86vm -ldl -lm'
+  . '-L/usr/X11R6/lib -lX11 -lXext -lXxf86dga -lXxf86vm -ldl -lm -lasound'
 );
 
 @RENDERER_FILES = qw(
@@ -231,7 +231,7 @@ $SOUND_REF = \@SOUND_FILES;
   ../unix/linux_qgl.c   
   ../unix/linux_glimp.c   
   ../unix/linux_joystick.c  
-  ../unix/linux_snd.c 
+  ../unix/snd_alsa.c 
   );
 $UNIX_REF = \@UNIX_FILES;
 
