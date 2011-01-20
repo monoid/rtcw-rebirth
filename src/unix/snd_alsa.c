@@ -122,6 +122,7 @@ qboolean SNDDMA_Init(void){
 	if(dma.speed){  //try specified rate
 	  r = dma.speed;
 		
+          dir = 0;
 	  if((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &r, &dir)) < 0)
 	    Com_Printf("ALSA: cannot set rate %d(%s)\n", r, snd_strerror(err));
 	  else {  //rate succeeded, but is perhaps slightly different
@@ -166,7 +167,11 @@ qboolean SNDDMA_Init(void){
 	    return qfalse;
 	  }
 	
-	p = BUFFER_SAMPLES / dma.channels;
+        snd_pcm_uframes_t buffer_size = BUFFER_SAMPLES;
+        snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
+
+	p = SUBMISSION_CHUNK / dma.channels / 2;
+        dir = 0;
 	if((err = snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params,
 							 &p, &dir)) < 0){
 	  Com_Printf("ALSA: cannot set period size (%s)\n", snd_strerror(err));
@@ -232,7 +237,8 @@ void SNDDMA_Shutdown(void){
 void SNDDMA_Submit(void){
 	int s, w, frames;
 	void *start;
-	
+	int retry = 0;
+
 	if(!dma.buffer)
 	  return;
 	
@@ -240,18 +246,19 @@ void SNDDMA_Submit(void){
 	start = (void *)&dma.buffer[s];
 	
 	frames = dma.submission_chunk / dma.channels;
-	
+
+ try_again:
 	if((w = snd_pcm_writei(pcm_handle, start, frames)) < 0){  //write to card
           switch (w) {
           case -EPIPE:
-            snd_pcm_recover(pcm_handle, w, 0);  //xrun occured
-            Com_Printf("ALSA EPIPE\n");
-            return;
+            w = snd_pcm_recover(pcm_handle, w, 0);  //xrun occured
+            //Com_Printf("ALSA EPIPE (xrun), recover: %d, retry = %d\n", w, retry++);
+            goto try_again;
           case -EAGAIN:
             return;
           default:
-            snd_pcm_recover(pcm_handle, w, 0);  //xrun occured
-            Com_Printf("ALSA ERR: %d\n", (int)w);
+            Com_Printf("ALSA ERR: %s\n", snd_strerror(w));
+            snd_pcm_recover(pcm_handle, w, 0); // ignoring return value...
           }
                 
 	}
